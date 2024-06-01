@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import re
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import matplotlib.pyplot as plt
@@ -86,8 +87,8 @@ def clean_text(text):
     text = text.lower()  # Convert to lowercase
     return text
 
-# Initiate the model building process
-if uploaded_file or example_data:
+# Ensure the dataframe is loaded
+if 'df' in locals():
     with st.status("Running ...", expanded=True) as status:
         st.write("Loading data ...")
         time.sleep(sleep_time)
@@ -118,8 +119,13 @@ if uploaded_file or example_data:
             st.write(average_sentiment)
 
             # Prepare data for model training
-            X = df.iloc[:, :-1]
-            y = df.iloc[:, -1]
+            X = df['cleaned_text']
+            y = df['sentiment_label']
+            
+            # Vectorize the text data
+            from sklearn.feature_extraction.text import CountVectorizer
+            vectorizer = CountVectorizer()
+            X = vectorizer.fit_transform(X).toarray()
         
         else:
             X = df.iloc[:,:-1]
@@ -135,6 +141,8 @@ if uploaded_file or example_data:
         if parameter_max_features == 'all':
             parameter_max_features = None
             parameter_max_features_metric = X.shape[1]
+        else:
+            parameter_max_features_metric = parameter_max_features
         
         rf = RandomForestClassifier(
                 n_estimators=parameter_n_estimators,
@@ -177,15 +185,7 @@ if uploaded_file or example_data:
         train_col = st.columns((3,1))
         with train_col[0]:
             st.markdown('**X**')
-            st.dataframe(X_train, height=210, hide_index=True, use_container_width=True)
+            st.dataframe(pd.DataFrame(X_train), height=210, hide_index=True, use_container_width=True)
         with train_col[1]:
             st.markdown('**y**')
-            st.dataframe(y_train, height=210, hide_index=True, use_container_width=True)
-    with st.expander('Test split', expanded=False):
-        test_col = st.columns((3,1))
-        with test_col[0]:
-            st.markdown('**X**')
-            st.dataframe(X_test, height=210, hide_index=True, use_container_width=True)
-        with test_col[1]:
-            st.markdown('**y**')
-            st.dataframe(y_test, height=
+            st.dataframe(pd.DataFrame(y_train),
